@@ -1,13 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Logging;
 using Rebus.Activation;
 using Rebus.Config;
 using Rebus.Handlers;
@@ -20,25 +13,29 @@ namespace App2
     {
         public static void Main(string[] args)
         {
+            //The App2 only initiate its handlers.
+            //The App1 will initiate its handlers and publish the messages.
+            
             var activator = new BuiltinHandlerActivator()
                 .Register(() => new SecondHandlerTeste());
             
-            //var config = new RebusConfig();
-            //config.InitConfig(activator);
             Configure.With(activator)
                 .Transport(t => t.UseRabbitMq("amqp://192.168.99.100", Assembly.GetEntryAssembly().GetName().Name))
                 .Routing(r => r.TypeBased()
-                    .Map(typeof(TesteMessage),"appMessage"))
-                .Start();
+                    .Map<TesteMessage>("appMessage")) // I tried to Map this TesteMessage to a destination "appMessage",  
+                .Start();                             // and did the same thing on the App1 project.
             
             activator.Bus.Subscribe<TesteMessage>().Wait();
             activator.Bus.Subscribe<SharedMessages>().Wait();
-            activator.Bus.Advanced.Topics.Subscribe("appMessage").Wait();
+            
+            //activator.Bus.Advanced.Topics.Subscribe("appMessage").Wait();
         }
     }
     
     public class TesteMessage
     {
+        // This class is declared on both App1 and App2 projects.
+        // I want this message to be published to both Handlers.
         public TesteMessage(string test)
         {
             Teste = test;
